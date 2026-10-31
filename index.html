@@ -464,6 +464,7 @@
  *   accent … 光の粒・進捗線・カーソルの光の色
  *   mode   … rise=下から舞い上がる粒（火の粉・湯気）／ drift=漂ってカーソルに寄る粒
  *   light  … 明るい背景のサイトなら true（粒を加算合成にしない）
+ *   exclude… この選択子の中は演出しない（既定：dialog・モーダル・ドロワー。開閉する部品で文字が透明のまま残るのを防ぐ）
  */
 (function () {
   'use strict';
@@ -471,6 +472,7 @@
   var accent = C.accent || '#c8922a';
   var mode = C.mode || 'drift';
   var light = !!C.light;
+  var exclude = C.exclude || 'dialog,[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="drawer"]';
   var doc = document;
   var fine = window.matchMedia && matchMedia('(pointer:fine)').matches;
   var narrow = window.innerWidth < 768;
@@ -664,7 +666,7 @@
     // 見出し：1文字ずつ立ち上がる
     var tsel = (C.titles || 'h1,h2,[class*="sec-title"],[class*="section-title"],[class*="-quote"],[class*="catch"],[class*="hero-title"]');
     $$(tsel).forEach(function (el) {
-      if (el.closest('nav,footer') || el.dataset.kfx) return;
+      if (el.closest('nav,footer') || el.closest(exclude) || el.dataset.kfx) return;
       if (el.textContent.trim().length === 0 || el.textContent.trim().length > 60) return;
       if (el.querySelector('img,svg,video,canvas')) return;
       el.dataset.kfx = '1';
@@ -691,7 +693,7 @@
     // 写真：下から幕が上がるように現れる
     var isel = (C.images || 'img,[class*="-img"]:not([class*="wrap"]),[class*="photo"],[class*="thumb"]');
     $$(isel).forEach(function (el) {
-      if (inHero(el) || el.closest('nav,footer,[class*="logo"]')) return;
+      if (inHero(el) || el.closest('nav,footer,[class*="logo"]') || el.closest(exclude)) return;
       if (el.offsetWidth < 200 || el.offsetHeight < 140) return;
       gsap.from(el, {
         clipPath: 'inset(0 0 100% 0)', scale: 1.14, duration: 1.5, ease: 'expo.out',
@@ -702,7 +704,7 @@
 
     // 価格などの数字：数え上げ
     $$('[class*="price"]').forEach(function (el) {
-      if (el.children.length) return;
+      if (el.children.length || el.closest(exclude)) return;
       var m = el.textContent.match(/[\d][\d,]*/);
       if (!m) return;
       var target = parseInt(m[0].replace(/,/g, ''), 10);
@@ -732,6 +734,7 @@
     // ボタンが指に吸い付く
     if (fine) {
       $$('a[class*="btn"],button[class*="btn"],a[class*="cta"]').forEach(function (el) {
+        if (el.closest(exclude)) return;
         el.addEventListener('pointermove', function (e) {
           var r = el.getBoundingClientRect();
           gsap.to(el, { x: (e.clientX - r.left - r.width / 2) * 0.25, y: (e.clientY - r.top - r.height / 2) * 0.4, duration: 0.4, ease: 'power3.out', overwrite: 'auto' });
